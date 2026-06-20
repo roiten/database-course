@@ -1,0 +1,177 @@
+erDiagram
+
+car {
+    int car_id PK
+    str header
+    str description
+    blob photo
+    int horse_power
+    date year
+    str color
+    enum suspension_type
+    enum car_status
+    decimal hour_rent_cost
+}
+
+specialization {
+    int car_id PK, FK
+    int trainer_id PK, FK
+}
+
+trainer {
+    int trainer_id PK
+    str full_name
+    date birth_year
+    int bank_account
+    blob photo
+    int favourite_car_id
+    decimal hour_salary
+}
+
+achievement {
+    int id
+    int trainer_id
+    int competition_id
+    str prize
+}
+
+competition {
+    int competition_id
+    str name
+    date competition_date
+}
+
+client {
+    int client_id PK
+    str first_name
+    str last_name
+    str middle_name
+    date birth_year
+    blob photo
+    int phone_number
+    enum drive_level
+    int leader_id FK
+    int channel_id FK
+}
+
+communication_channel {
+    int channel_id PK
+    str name
+    date ad_start
+    date ad_end "NULL"
+}
+
+training_booking {
+    int booking_id PK
+
+    int client_id FK
+    int trainer_id FK
+    int trek_id FK
+    int car_id FK
+    enum status "забронировано/оплачено/подтверждено/отменено"
+    text client_message
+    decimal club_commission
+    decimal training_cost
+}
+
+booking_hour {
+    int hour_id PK
+    int booking_id FK
+    date training_date
+    int start_hour
+}
+
+club_timetable {
+    int day_of_week
+    time start
+    time finish
+}
+
+%% как то надо подружить график работ и нерабочие дни
+
+trek {
+    int trek_id PK, FK
+    str name
+}
+
+%%подумать над
+trek_timetable {
+    int trek_id PK, FK
+    date day
+    time start
+    time finish
+    int event_id FK
+}
+
+event {
+    int event_id
+    str event_name
+}
+
+trainer_timetable {
+    int trainer_id
+    datetime start
+    datetime finish
+}
+
+        communication_channel ||--o{ client : "привлекать"
+    %%каждый канал коммуникации может привлекать несколько клиентов, связь один-ко-многим
+
+    client o|--|| communication_channel : "использовать"
+    %%каждый клиент обязан быть связан с одним каналом коммуникации, связь многие-к-одному
+
+    client o|--|| client : "иметь лидера"
+    %%каждый клиент может иметь не более одного лидера, связь рекурсивная многие-к-одному
+
+    client ||--o{ client : "приводить клиентов"
+    %%каждый клиент может привести несколько других клиентов, связь рекурсивная один-ко-многим
+
+    car ||--o{ specialization : "допускать тренеров"
+    %%каждый автомобиль может быть связан с несколькими тренерами через специализацию, связь один-ко-многим
+
+    trainer ||--o{ specialization : "иметь допуски"
+    %%каждый тренер может иметь допуск к нескольким автомобилям, связь один-ко-многим
+
+    trainer o|--|| car : "предпочитать"
+    %%каждый тренер может иметь не более одного любимого автомобиля, связь многие-к-одному
+
+    %%каждый автомобиль может быть любимым у нескольких тренеров, связь один-ко-многим
+
+    trainer ||--o{ achievement : "иметь достижения"
+    %%каждый тренер может иметь несколько достижений, связь один-ко-многим
+
+    achievement }|--|| competition : "получаться на соревновании"
+    %%каждое достижение обязано относиться к одному соревнованию, связь многие-к-одному
+
+    client ||--o{ training_booking : "бронировать"
+    %%каждый клиент может оформить несколько записей на тренировку, связь один-ко-многим
+
+    training_booking }|--|| trainer : "назначать тренера"
+    %%каждая запись на тренировку обязана содержать одного тренера, связь многие-к-одному
+
+    training_booking }|--|| car : "бронировать автомобиль"
+    %%каждая запись на тренировку обязана содержать один автомобиль, связь многие-к-одному
+
+    training_booking }|--|| trek : "проходить на треке"
+    %%каждая запись на тренировку обязана быть связана с одним треком, связь многие-к-одному
+
+    training_booking ||--|{ booking_hour : "содержать тренировочные часы"
+    %%каждая запись на тренировку должна содержать несколько тренировочных часов, связь один-ко-многим
+
+    trek ||--o{ trek_timetable : "иметь расписание"
+    %%каждый трек может иметь несколько временных интервалов занятости, связь один-ко-многим
+
+    event ||--o{ trek_timetable : "блокировать время"
+    %%каждое событие может блокировать несколько временных интервалов трека, связь один-ко-многим
+
+    trainer ||--o{ trainer_timetable : "работать по графику"
+    %%каждый тренер может иметь несколько рабочих интервалов, связь один-ко-многим
+
+    booking_hour }|--|| trainer : "занимать время тренера"
+    %%каждый тренировочный час связан с одним тренером, связь многие-к-одному
+
+    booking_hour }|--|| car : "занимать автомобиль"
+    %%каждый тренировочный час связан с одним автомобилем, связь многие-к-одному
+
+    booking_hour }|--|| trek : "занимать трек"
+    %%каждый тренировочный час связан с одним треком, связь многие-к-одному

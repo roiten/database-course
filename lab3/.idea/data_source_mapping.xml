@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/lab3.1.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/lab3.2.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/lab3.3.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab4/insert_data.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab4/insert_data_3.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab4/lab4.1-1.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab4/lab4.1-2.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab4/lab4.1-3.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab4/lab4.2.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab4/lab4.2_3.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab5/lab5.1.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab5/lab5.2.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab5/lab5.3.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab5/lab5.4-1.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+    <file url="file://$PROJECT_DIR$/../lab5/lab5.4-2.sql" value="79de0825-4f1a-49bf-ae45-6079a36e1e79" />
+  </component>
+</project>

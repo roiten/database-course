@@ -1,0 +1,49 @@
+1 . мне кажется, что у автора слишком много пунктуационных ошибок в п.4
+2 .. а мне не кажется!
+3 .. даааа... мой косяк( поправил, проверьте!
+4 ... значительно лучше! только форматирование статьи с картинками у меня поехало.. у вас такой рпоблемы нет?
+5 ... у меня нет!)
+6 ... кажется эта проблема только на сафари есть... у меня так же
+7 .... спасибо за фидбек. поправил, проверьте!
+8 ..... круть, спасибо!
+9 . крутая статья! я бы еще про этот движок почитал
+10 . как по мне это всё детский сад. куча уже готовых подобных проектов есть.
+11 .. например? просто чтобы не быть голословным
+12 ... вот например проект (ссыль)
+13 .... НЛО прилетело и опубликовало эту запись на хабрахабре
+14 ..... так это вообще не то! автор поста предлагает другую киллер-фичу!
+
+
+
+/home/roiten
+/home/roiten/institute
+/home/roiten/institute/comb-algorithms
+/home/roiten/institute/comb-algorithms/lab2
+/home/roiten/institute/comb-algorithms/lab4
+/home/roiten/institute/comb-algorithms/lab4/src
+/home/roiten/institute/comb-algorithms/lab4/src/algorithms
+/home/roiten/institute/comb-algorithms/lab4/tests
+/home/roiten/institute/oop/lab1/
+/home/roiten/institute/oop/lab2/
+/home/roiten/institute/oop/lab3/
+/home/roiten/institute/oop/lab4/
+/home/roiten/institute/oop/lab5/
+/home/roiten/institute/oop/lab6/
+/opt/
+/media/
+/mnt/
+/lib/
+/sys/
+/init/
+/usr
+  bin/
+  games/
+  include/
+  lib/
+  lib64/
+  libexec/
+  local/
+  sbin/
+  share/
+  src/
+/var/
