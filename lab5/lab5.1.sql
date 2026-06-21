@@ -105,32 +105,74 @@ SELECT id
 FROM directories
 WHERE name = 'lab4';
 
+select * from directory_closure;
+
 
 -- перемещение
-DELETE FROM directory_closure
-WHERE child_id IN (
-             SELECT dc.parent_id
-             FROM directory_closure dc
-             WHERE dc.parent_id = 14
+# DELETE FROM directory_closure
+# WHERE child_id IN (
+#     SELECT dc.parent_id
+#         FROM directory_closure dc
+#         WHERE dc.parent_id = 14
+# );
+# попробовать одной транзакцией в три запроса
+
+
+# DELETE dc
+# FROM directory_closure dc
+# INNER JOIN directory_closure subtree ON dc.child_id = subtree.child_id AND subtree.parent_id= 14
+# INNER JOIN directory_closure old_parents ON dc.parent_id = old_parents.parent_id
+# WHERE old_parents.child_id = 14 AND old_parents.parent_id != 14;
+#
+# INSERT INTO directory_closure (child_id, parent_id, depth)
+# SELECT dc_node.child_id, dc_p.parent_id, dc_node.depth + dc_p.depth + 1
+# FROM directory_closure dc_node, directory_closure dc_p
+# WHERE dc_node.parent_id = 14
+#   AND dc_p.child_id = 17;
+
+# DROP TEMPORARY TABLE IF EXISTS to_delete;
+#
+# CREATE TEMPORARY TABLE to_delete AS (
+#     SELECT dc.child_id, dc.parent_id, dc.depth
+#     FROM directory_closure dc
+#     WHERE dc.parent_id = 14
+# );
+#
+# DELETE FROM directory_closure dc
+# WHERE child_id IN (SELECT to_delete.child_id FROM to_delete)
+#   AND dc.parent_id NOT IN (SELECT to_delete.child_id FROM to_delete);
+BEGIN;
+CREATE TEMPORARY TABLE to_delete AS (
+    SELECT dc.child_id, dc.parent_id, dc.depth
+    FROM directory_closure dc
+    WHERE dc.parent_id = 14
 );
--- попробовать одной транзакцией в три запроса
 
-DELETE dc
-FROM directory_closure dc
-INNER JOIN directory_closure subtree ON dc.child_id = subtree.child_id AND subtree.parent_id= 14
-INNER JOIN directory_closure old_parents ON dc.parent_id = old_parents.parent_id
-WHERE old_parents.child_id = 14 AND old_parents.parent_id != 14;
+SELECT GROUP_CONCAT(child_id) INTO @ids FROM to_delete;
 
-INSERT INTO directory_closure (child_id, parent_id, depth)
-SELECT dc_node.child_id, dc_p.parent_id, dc_node.depth + dc_p.depth + 1
-FROM directory_closure dc_node, directory_closure dc_p
-WHERE dc_node.parent_id = 14
-  AND dc_p.child_id = 17;
+DELETE FROM directory_closure
+WHERE FIND_IN_SET(child_id, @ids)
+  AND NOT FIND_IN_SET(parent_id, @ids);
+
+INSERT INTO directory_closure (parent_id, child_id, depth)
+SELECT
+    p.parent_id,
+    td.child_id,
+    p.depth + td.depth + 1 AS depth
+FROM to_delete td
+CROSS JOIN (
+    SELECT parent_id, depth
+    FROM directory_closure
+    WHERE child_id = 17
+) AS p;
+
+DROP TEMPORARY TABLE IF EXISTS to_delete;
+COMMIT;
 
 -- извечение поддерева
 SELECT dir.id, dir.name, c.depth
 FROM directory_closure c
-         JOIN directories dir ON dir.id = c.child_id
+    JOIN directories dir ON dir.id = c.child_id
 WHERE c.parent_id = 11
 ORDER BY c.depth, dir.id;
 
@@ -155,24 +197,15 @@ AND d.name = 'tests';
 
 
 -- вывод списка всех соседних директорий
-# SELECT dir.id, dir.name
-# FROM directory_closure dc
-#          JOIN directories dir ON dir.id = dc.child_id
-# WHERE dc.parent_id = (SELECT c.parent_id
-#                         FROM directory_closure c
-#                                  JOIN directories d ON c.child_id = d.id
-#                         WHERE d.name = 'oop'
-#                           AND c.depth = 1)
-#   AND dc.depth = 1;
+SELECT dc2.child_id, d.name
+FROM directory_closure dc
+INNER JOIN directory_closure dc2 ON dc.parent_id = dc2.parent_id AND dc2.depth = 1
+INNER JOIN directories d
+           ON dc2.child_id = d.id
+               AND dc.depth = 1
+               AND dc.child_id = 17;
 
-SELECT d.id, d.name
-FROM directory_closure dc1
-    INNER JOIN directory_closure dc2 ON dc1.parent_id = dc2.parent_id
-    INNER JOIN directories d ON dc2.child_id = d.id
-WHERE dc1.child_id = 17
-    AND dc1.depth = 1 AND dc2.depth = 1;
-
-
+-- TODO: завести связи вверх
 -- вставки 3 элементов
 INSERT INTO directories (name)
 VALUES ('lab5');

@@ -101,7 +101,7 @@ SET @e6 = UUID();
 SET @e7 = UUID();
 
 INSERT INTO `enrollment` (enrollment_id, user_id, course_id, start_date)
-VALUES (UUID_TO_BIN(@e1), (SELECT user_id FROM user WHERE email = 'ivan@email.com'), UUID_TO_BIN(@c1),
+VALUES (UUID_TO_BIN(@e1), (SELECT user_id FROM user WHERE email = 'ivan@email.com'), UUID_TO_BIN(@c6),
         '2025-09-01 09:00:00'),
        (UUID_TO_BIN(@e2), (SELECT user_id FROM user WHERE email = 'ivan@email.com'), UUID_TO_BIN(@c5),
         '2025-09-02 09:00:00'),
@@ -121,6 +121,7 @@ SET @a2 = UUID();
 SET @a3 = UUID();
 SET @a4 = UUID();
 SET @a5 = UUID();
+SET @a6 = UUID();
 
 INSERT INTO `attempt` (attempt_id, enrollment_id, start_date, duration, score)
 VALUES
@@ -128,7 +129,8 @@ VALUES
        (UUID_TO_BIN(@a2), UUID_TO_BIN(@e3), '2026-01-21 11:30:00', 1200, 40),
        (UUID_TO_BIN(@a3), UUID_TO_BIN(@e5), '2026-02-11 15:40:00', 299, 100),
        (UUID_TO_BIN(@a4), UUID_TO_BIN(@e6), '2026-02-11 15:44:00', 280, 88),
-       (UUID_TO_BIN(@a5), UUID_TO_BIN(@e7), '2026-02-11 17:01:00', 300, 100);
+       (UUID_TO_BIN(@a5), UUID_TO_BIN(@e7), '2026-02-11 17:01:00', 300, 100),
+       (UUID_TO_BIN(@a6), UUID_TO_BIN(@e1), '2024-02-11 17:01:00', 300, 100);
 
 INSERT INTO `quiz_attempt_answer` (attempt_id, question_id, answer_value)
 VALUES (UUID_TO_BIN(@a1), UUID_TO_BIN(@q1), '24 hours'),
@@ -150,7 +152,11 @@ VALUES (UUID_TO_BIN(@a1), UUID_TO_BIN(@q1), '24 hours'),
        (UUID_TO_BIN(@a5), UUID_TO_BIN(@q4), 'mv -r /opt ~/super-folder'),
        (UUID_TO_BIN(@a5), UUID_TO_BIN(@q4), 'super-folder'),
 #        (UUID_TO_BIN(@a5), UUID_TO_BIN(@q5), 'super-folder,super-folder2,super-final-folder,super-final-folder-ultra'),
-       (UUID_TO_BIN(@a5), UUID_TO_BIN(@q6), '24 hours');
+       (UUID_TO_BIN(@a5), UUID_TO_BIN(@q6), '24 hours'),
+
+       (UUID_TO_BIN(@a6), UUID_TO_BIN(@q4), '24 hours'),
+       (UUID_TO_BIN(@a6), UUID_TO_BIN(@q5), '24 hours'),
+       (UUID_TO_BIN(@a6), UUID_TO_BIN(@q6), '4 hours');
 
 INSERT INTO `quiz_attempt_answer` (attempt_id, question_id, answer_value, answer_order)
 VALUES (UUID_TO_BIN(@a1), UUID_TO_BIN(@q3), 'docker pull', 1),
