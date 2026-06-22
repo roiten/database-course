@@ -1,6 +1,10 @@
 USE path;
 
 BEGIN;
+UPDATE directories
+SET name = 'newdir' WHERE id = 5;
 
-INSERT INTO directories(id, name)
-VALUES (78, 'newFolder');
+UPDATE directories
+SET name = 'folder' WHERE id = 2;
+
+ROLLBACK;

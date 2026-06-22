@@ -1,7 +1,10 @@
 USE path;
 
 BEGIN;
+UPDATE directories
+SET name = 'sbin' WHERE id = 2;
 
 UPDATE directories
-SET name = 'newdir' WHERE id=2
+SET name = 'ndir' WHERE id = 5;
 
+ROLLBACK;

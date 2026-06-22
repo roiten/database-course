@@ -105,8 +105,7 @@ SELECT id
 FROM directories
 WHERE name = 'lab4';
 
-select * from directory_closure;
-
+SELECT * FROM directory_closure;
 
 -- перемещение
 # DELETE FROM directory_closure
@@ -205,7 +204,6 @@ INNER JOIN directories d
                AND dc.depth = 1
                AND dc.child_id = 17;
 
--- TODO: завести связи вверх
 -- вставки 3 элементов
 INSERT INTO directories (name)
 VALUES ('lab5');
