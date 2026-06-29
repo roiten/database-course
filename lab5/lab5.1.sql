@@ -101,11 +101,18 @@ VALUES (1, 1, 0),
        (19, 19, 0);
 
 
-SELECT id
-FROM directories
-WHERE name = 'lab4';
+DROP PROCEDURE IF EXISTS insert_closure;
+CREATE PROCEDURE insert_closure(anc_id INT, node_id INT)
+BEGIN
+    INSERT INTO directory_closure (parent_id, child_id, depth)
+    SELECT
+        dc.parent_id,
+        node_id,
+        dc.depth + 1
+    FROM directory_closure dc
+    WHERE dc.child_id = anc_id;
+END;
 
-SELECT * FROM directory_closure;
 
 -- перемещение
 # DELETE FROM directory_closure
@@ -116,6 +123,12 @@ SELECT * FROM directory_closure;
 # );
 # попробовать одной транзакцией в три запроса
 
+# DELETE FROM directory_closure
+#     WHERE parent_id NOT IN (SELECT dc.child_id as t
+#                        FROM directory_closure dc
+#                        WHERE dc.parent_id = 14
+#                        );
+-- [HY000][1093] You can't specify target table 'directory_closure' for update in FROM clause
 
 # DELETE dc
 # FROM directory_closure dc
@@ -140,33 +153,21 @@ SELECT * FROM directory_closure;
 # DELETE FROM directory_closure dc
 # WHERE child_id IN (SELECT to_delete.child_id FROM to_delete)
 #   AND dc.parent_id NOT IN (SELECT to_delete.child_id FROM to_delete);
+
+
 BEGIN;
-CREATE TEMPORARY TABLE to_delete AS (
-    SELECT dc.child_id, dc.parent_id, dc.depth
-    FROM directory_closure dc
-    WHERE dc.parent_id = 14
-);
 
-SELECT GROUP_CONCAT(child_id) INTO @ids FROM to_delete;
+DELETE FROM directory_closure WHERE child_id = 14 AND parent_id != 14;
+DELETE FROM directory_closure WHERE child_id = 15 AND parent_id != 15;
+DELETE FROM directory_closure WHERE child_id = 16 AND parent_id != 16;
 
-DELETE FROM directory_closure
-WHERE FIND_IN_SET(child_id, @ids)
-  AND NOT FIND_IN_SET(parent_id, @ids);
+CALL insert_closure(17, 14);
+CALL insert_closure(14, 15);
+CALL insert_closure(14, 16);
 
-INSERT INTO directory_closure (parent_id, child_id, depth)
-SELECT
-    p.parent_id,
-    td.child_id,
-    p.depth + td.depth + 1 AS depth
-FROM to_delete td
-CROSS JOIN (
-    SELECT parent_id, depth
-    FROM directory_closure
-    WHERE child_id = 17
-) AS p;
-
-DROP TEMPORARY TABLE IF EXISTS to_delete;
 COMMIT;
+
+SELECT * FROM directory_closure;
 
 -- извечение поддерева
 SELECT dir.id, dir.name, c.depth
