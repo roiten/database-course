@@ -76,7 +76,7 @@ WITH NeededQuizEnrollment AS (
         AND c.deletedAt IS NULL
         AND u.state = 'active'
 ),
-UsersWithWrongAnswers AS (
+EnrollmentsWithWrongAnswers AS (
     SELECT DISTINCT nqe.enrollment_id
     FROM NeededQuizEnrollment nqe
     INNER JOIN attempt a ON a.enrollment_id = nqe.enrollment_id
@@ -92,13 +92,12 @@ UsersWithWrongAnswers AS (
     WHERE mcqav.question_id IS NULL
         AND sqav.question_id IS NULL
 )
-
 SELECT DISTINCT IF(u.name IS NOT NULL AND u.name <> '', u.name, u.email) AS login
 FROM NeededQuizEnrollment nqe
 INNER JOIN enrollment e ON e.enrollment_id = nqe.enrollment_id
 INNER JOIN user u ON u.user_id = e.user_id
-LEFT JOIN UsersWithWrongAnswers uwwa ON uwwa.enrollment_id = nqe.enrollment_id
-WHERE uwwa.enrollment_id IS NULL;
+LEFT JOIN EnrollmentsWithWrongAnswers ewwa ON ewwa.enrollment_id = nqe.enrollment_id
+WHERE ewwa.enrollment_id IS NULL;
 
 # или без cte:
 # SELECT * FROM quiz q
@@ -220,66 +219,76 @@ WHERE qaa.answer_value = '' OR qaa.answer_value IS NULL;
 
 WITH fired AS (SELECT COUNT(DISTINCT qaa.question_id) AS cnt
 FROM quiz q
-    INNER JOIN course c ON q.quiz_id = c.course_id
-    INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
-    INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
-    INNER JOIN attempt a ON qaa.attempt_id = a.attempt_id
-    INNER JOIN enrollment e ON a.enrollment_id = e.enrollment_id
-    INNER JOIN user u ON e.user_id = u.user_id
-    LEFT JOIN multiple_question_available_values mcqav
-        ON mcqav.question_id = qq.question_id
-            AND mcqav.value = qaa.answer_value
-            AND mcqav.is_correct = 1
-    LEFT JOIN sequence_question_available_values sqav
-        ON sqav.question_id = qq.question_id
-            AND sqav.value = qaa.answer_value
-            AND sqav.value_order = qaa.answer_order
-WHERE
-  c.name = 'FPM-quiz'
-  AND qq.quiz_id = q.quiz_id
-  AND a.start_date < '2025-01-01'
-  AND q.state = 'published'
-  AND u.state = 'fired'
-  AND qq.question_id = qaa.question_id
-  AND mcqav.question_id IS NULL
-  AND sqav.question_id IS NULL),
+INNER JOIN course c ON q.quiz_id = c.course_id
+INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
+INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
+INNER JOIN attempt a ON qaa.attempt_id = a.attempt_id
+INNER JOIN enrollment e ON a.enrollment_id = e.enrollment_id
+INNER JOIN user u ON e.user_id = u.user_id
+LEFT JOIN multiple_question_available_values mcqav
+    ON mcqav.question_id = qq.question_id
+        AND mcqav.value = qaa.answer_value
+        AND mcqav.is_correct = 1
+LEFT JOIN sequence_question_available_values sqav
+    ON sqav.question_id = qq.question_id
+        AND sqav.value = qaa.answer_value
+        AND sqav.value_order = qaa.answer_order
+WHERE c.name = 'FPM-quiz'
+    AND qq.quiz_id = q.quiz_id
+    AND a.start_date < '2025-01-01'
+    AND q.state = 'published'
+    AND u.state = 'fired'
+    AND qq.question_id = qaa.question_id
+    AND mcqav.question_id IS NULL
+    AND sqav.question_id IS NULL),
 
 active AS (SELECT COUNT(DISTINCT qaa.question_id) AS cnt
 FROM quiz q
-    INNER JOIN course c ON q.quiz_id = c.course_id
-    INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
-    INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
-    INNER JOIN attempt a ON qaa.attempt_id = a.attempt_id
-    INNER JOIN enrollment e ON a.enrollment_id = e.enrollment_id
-    INNER JOIN user u ON e.user_id = u.user_id
-    LEFT JOIN multiple_question_available_values mcqav
-        ON mcqav.question_id = qq.question_id
-            AND mcqav.value = qaa.answer_value
-            AND mcqav.is_correct = 1
-    LEFT JOIN sequence_question_available_values sqav
-        ON sqav.question_id = qq.question_id
-            AND sqav.value = qaa.answer_value
-            AND sqav.value_order = qaa.answer_order
-WHERE
-  c.name = 'FPM-quiz'
-  AND qq.quiz_id = q.quiz_id
-  AND a.start_date >= '2025-01-01'
-  AND q.state = 'published'
-  AND u.state = 'active'
-  AND qq.question_id = qaa.question_id
-  AND mcqav.question_id IS NULL
-  AND sqav.question_id IS NULL)
+INNER JOIN course c ON q.quiz_id = c.course_id
+INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
+INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
+INNER JOIN attempt a ON qaa.attempt_id = a.attempt_id
+INNER JOIN enrollment e ON a.enrollment_id = e.enrollment_id
+INNER JOIN user u ON e.user_id = u.user_id
+LEFT JOIN multiple_question_available_values mcqav
+    ON mcqav.question_id = qq.question_id
+        AND mcqav.value = qaa.answer_value
+        AND mcqav.is_correct = 1
+LEFT JOIN sequence_question_available_values sqav
+    ON sqav.question_id = qq.question_id
+        AND sqav.value = qaa.answer_value
+        AND sqav.value_order = qaa.answer_order
+WHERE c.name = 'FPM-quiz'
+    AND qq.quiz_id = q.quiz_id
+    AND a.start_date >= '2025-01-01'
+    AND q.state = 'published'
+    AND u.state = 'active'
+    AND qq.question_id = qaa.question_id
+    AND mcqav.question_id IS NULL
+    AND sqav.question_id IS NULL),
+
+questionsCount AS (SELECT COUNT(qq.question_id) AS cnt
+FROM quiz q
+INNER JOIN course c ON q.quiz_id = c.course_id
+INNER JOIN quiz_question qq ON q.quiz_id = qq.quiz_id
+LEFT JOIN sequence_question_available_values sqav ON qq.question_id = sqav.question_id
+LEFT JOIN multiple_question_available_values mqav ON qq.question_id = mqav.question_id AND mqav.is_correct
+
+WHERE c.name = 'FPM-quiz'
+    AND q.state = 'published'
+)
 
 SELECT
-    a.cnt AS 'Ошибок у активных',
-    f.cnt AS 'Ошибок у уволенных',
+    (SELECT (questionsCount.cnt - a.cnt)) AS 'Правильных ответов у активных',
+    (SELECT (questionsCount.cnt - f.cnt)) AS 'Правильных ответов у уволенных',
     CASE
         WHEN f.cnt < a.cnt THEN 'Уволенные пользователи лучше проходят квизы.'
         WHEN f.cnt > a.cnt THEN 'Активные пользователи лучше проходят квизы.'
         ELSE 'Обе группы пользователей проходят квизы одинаково.'
         END AS comparision
 FROM active a
-         JOIN fired f;
+    JOIN fired f
+    JOIN questionsCount;
 
 # SELECT q.quiz_id, qq.question_id, qaa.attempt_id, u.email, qq.text, qaa.answer_value, qaa.answer_order
 # FROM quiz q
