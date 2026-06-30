@@ -154,7 +154,7 @@ END;
 # WHERE child_id IN (SELECT to_delete.child_id FROM to_delete)
 #   AND dc.parent_id NOT IN (SELECT to_delete.child_id FROM to_delete);
 
-
+-- перемещение
 BEGIN;
 
 DELETE FROM directory_closure WHERE child_id = 14 AND parent_id != 14;
@@ -200,10 +200,9 @@ AND d.name = 'tests';
 SELECT dc2.child_id, d.name
 FROM directory_closure dc
 INNER JOIN directory_closure dc2 ON dc.parent_id = dc2.parent_id AND dc2.depth = 1
-INNER JOIN directories d
-           ON dc2.child_id = d.id
-               AND dc.depth = 1
-               AND dc.child_id = 17;
+INNER JOIN directories d ON dc2.child_id = d.id
+    AND dc.depth = 1
+    AND dc.child_id = 17;
 
 -- вставки 3 элементов
 INSERT INTO directories (name)

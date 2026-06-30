@@ -1,64 +1,104 @@
 use study;
 
-# SELECT DISTINCT IF(u.name IS NOT NULL AND u.name != '', u.name, u.email) AS user
-# FROM user u
-#          INNER JOIN enrollment e ON u.user_id = e.user_id
-#          INNER JOIN course c ON e.course_id = c.course_id
-#          INNER JOIN quiz q ON c.course_id = q.quiz_id
-#          INNER JOIN quiz_question qq ON q.quiz_id = qq.quiz_id
-#          INNER JOIN attempt a ON e.enrollment_id = a.enrollment_id
-#          INNER JOIN quiz_attempt_answer qaa ON a.attempt_id = qaa.attempt_id
+SET SESSION optimizer_switch = DEFAULT;
+
+SELECT DISTINCT IF(u.name IS NOT NULL AND u.name != '', u.name, u.email) AS user
+FROM user u
+         INNER JOIN enrollment e ON u.user_id = e.user_id
+         INNER JOIN course c ON e.course_id = c.course_id
+         INNER JOIN quiz q ON c.course_id = q.quiz_id
+WHERE
+    u.state = 'active'
+  AND c.deletedAt IS NULL
+  AND c.courseType = 'quiz'
+  AND q.state = 'published'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM attempt a
+             INNER JOIN quiz_attempt_answer qaa ON a.attempt_id = qaa.attempt_id
+             INNER JOIN quiz_question qq ON qq.question_id = qaa.question_id
+                AND qq.quiz_id = q.quiz_id
+             LEFT JOIN multiple_question_available_values mcqav ON mcqav.question_id = qq.question_id
+                AND mcqav.value = qaa.answer_value
+                AND mcqav.is_correct = 1
+             LEFT JOIN sequence_question_available_values sqav ON sqav.question_id = qq.question_id
+                AND sqav.value = qaa.answer_value
+                AND sqav.value_order = qaa.answer_order
+    WHERE a.enrollment_id = e.enrollment_id
+        AND mcqav.question_id IS NULL
+        AND sqav.question_id IS NULL
+);
+
+
+# WITH UsersWithWrongAnswers AS (SELECT DISTINCT q.quiz_id, qq.question_id, qaa.attempt_id
+# FROM quiz q
+#     INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
+#     INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
+#          LEFT JOIN multiple_question_available_values mcqav ON mcqav.question_id = qq.question_id
+#             AND mcqav.value = qaa.answer_value
+#             AND mcqav.is_correct = 1
+#          LEFT JOIN sequence_question_available_values sqav ON sqav.question_id = qq.question_id
+#             AND sqav.value = qaa.answer_value
+#             AND sqav.value_order = qaa.answer_order
+# WHERE qq.quiz_id = q.quiz_id
+#     AND q.state = 'published'
 #     AND qq.question_id = qaa.question_id
-# WHERE u.state = 'active'
+#     AND mcqav.question_id IS NULL
+#     AND sqav.question_id IS NULL),
+#
+# UsersWithWrongQuiz AS (SELECT DISTINCT u.email, uwwa.quiz_id, e.enrollment_id
+# FROM UsersWithWrongAnswers uwwa
+# INNER JOIN attempt a ON uwwa.attempt_id = a.attempt_id
+# INNER JOIN enrollment e ON a.enrollment_id = e.enrollment_id
+# INNER JOIN user u ON u.user_id = e.user_id)
+#
+# SELECT DISTINCT IF(u.name <> '', u.name, u.email) AS login
+# FROM enrollment e
+# LEFT JOIN UsersWithWrongQuiz uwwq ON e.course_id = uwwq.quiz_id AND uwwq.enrollment_id = e.enrollment_id
+# INNER JOIN user u ON u.user_id = e.user_id
+# INNER JOIN course c ON e.course_id = c.course_id
+# INNER JOIN quiz q ON c.course_id = q.quiz_id
+# WHERE uwwq.quiz_id IS NULL
+#   AND c.courseType = 'quiz'
 #   AND c.deletedAt IS NULL
 #   AND q.state = 'published'
-#   AND NOT EXISTS (
-#     SELECT 1
-#     FROM quiz_question qq2
-#              LEFT JOIN multiple_question_available_values mcqav
-#                 ON mcqav.question_id = qq2.question_id
-#                     AND mcqav.value = qaa.answer_value
-#                     AND mcqav.is_correct = 1
-#              LEFT JOIN sequence_question_available_values sqav
-#                 ON sqav.question_id = qq2.question_id
-#                     AND sqav.value = qaa.answer_value
-#                     AND sqav.value_order = qaa.answer_order
-#     WHERE qq2.quiz_id = q.quiz_id
-#         AND qq2.question_id = qaa.question_id
-#         AND mcqav.question_id IS NULL
-#         AND sqav.question_id IS NULL
-# );
+#   AND u.state = 'active';
 
-WITH UsersWithWrongAnswers AS (SELECT DISTINCT q.quiz_id, qq.question_id, qaa.attempt_id
-FROM quiz q
-    INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
-    INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
-         LEFT JOIN multiple_question_available_values mcqav ON mcqav.question_id = qq.question_id
-            AND mcqav.value = qaa.answer_value
-            AND mcqav.is_correct = 1
-         LEFT JOIN sequence_question_available_values sqav ON sqav.question_id = qq.question_id
-            AND sqav.value = qaa.answer_value
-            AND sqav.value_order = qaa.answer_order
-WHERE qq.quiz_id = q.quiz_id
-    AND q.state = 'published'
-    AND qq.question_id = qaa.question_id
-    AND mcqav.question_id IS NULL
-    AND sqav.question_id IS NULL),
 
-UsersWithWrongQuiz AS (SELECT DISTINCT u.email, uwwa.quiz_id, e.enrollment_id
-FROM UsersWithWrongAnswers uwwa
-INNER JOIN attempt a ON uwwa.attempt_id = a.attempt_id
-INNER JOIN enrollment e ON a.enrollment_id = e.enrollment_id
-INNER JOIN user u ON u.user_id = e.user_id)
+WITH NeededQuizEnrollment AS (
+    SELECT e.enrollment_id, q.quiz_id
+    FROM quiz q
+    INNER JOIN course c ON c.course_id = q.quiz_id
+    INNER JOIN enrollment e ON e.course_id = q.quiz_id
+    INNER JOIN user u ON u.user_id = e.user_id
+    WHERE q.state = 'published'
+        AND c.courseType = 'quiz'
+        AND c.deletedAt IS NULL
+        AND u.state = 'active'
+),
+UsersWithWrongAnswers AS (
+    SELECT DISTINCT nqe.enrollment_id
+    FROM NeededQuizEnrollment nqe
+    INNER JOIN attempt a ON a.enrollment_id = nqe.enrollment_id
+    INNER JOIN quiz_attempt_answer qaa ON qaa.attempt_id = a.attempt_id
+    INNER JOIN quiz_question qq ON qq.question_id = qaa.question_id
+        AND qq.quiz_id = nqe.quiz_id
+    LEFT JOIN multiple_question_available_values mcqav ON mcqav.question_id = qq.question_id
+        AND mcqav.value = qaa.answer_value
+        AND mcqav.is_correct = 1
+    LEFT JOIN sequence_question_available_values sqav ON sqav.question_id = qq.question_id
+        AND sqav.value = qaa.answer_value
+        AND sqav.value_order = qaa.answer_order
+    WHERE mcqav.question_id IS NULL
+        AND sqav.question_id IS NULL
+)
 
-SELECT IF(u.name <> '', u.name, u.email) AS login
-FROM enrollment e
-LEFT JOIN UsersWithWrongQuiz uwwq ON e.course_id = uwwq.quiz_id AND uwwq.enrollment_id = e.enrollment_id
-JOIN user u ON u.user_id = e.user_id
-JOIN course c ON e.course_id = c.course_id
-WHERE uwwq.quiz_id IS NULL
-    AND c.courseType = 'quiz'
-    AND u.state = 'active';
+SELECT DISTINCT IF(u.name IS NOT NULL AND u.name <> '', u.name, u.email) AS login
+FROM NeededQuizEnrollment nqe
+INNER JOIN enrollment e ON e.enrollment_id = nqe.enrollment_id
+INNER JOIN user u ON u.user_id = e.user_id
+LEFT JOIN UsersWithWrongAnswers uwwa ON uwwa.enrollment_id = nqe.enrollment_id
+WHERE uwwa.enrollment_id IS NULL;
 
 # или без cte:
 # SELECT * FROM quiz q
@@ -83,31 +123,32 @@ WHERE uwwq.quiz_id IS NULL
 #   AND c.courseType = 'quiz'
 #   AND u.state = 'active';
 
-SELECT DISTINCT IF(u1.name <> '', u1.name, u1.email) AS login
-FROM enrollment e
-INNER JOIN user u1 ON u1.user_id = e.user_id
-INNER JOIN course c ON e.course_id = c.course_id
-LEFT JOIN (
-    SELECT DISTINCT u2.email, q.quiz_id, e2.enrollment_id
-    FROM quiz q
-             INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
-             INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
-             LEFT JOIN multiple_question_available_values mcqav ON mcqav.question_id = qq.question_id
-                AND mcqav.value = qaa.answer_value
-                AND mcqav.is_correct = 1
-             LEFT JOIN sequence_question_available_values sqav ON sqav.question_id = qq.question_id
-                AND sqav.value = qaa.answer_value
-                AND sqav.value_order = qaa.answer_order
-             INNER JOIN attempt a ON qaa.attempt_id = a.attempt_id
-             INNER JOIN enrollment e2 ON a.enrollment_id = e2.enrollment_id
-             INNER JOIN user u2 ON u2.user_id = e2.user_id
-    WHERE q.state = 'published'
-        AND mcqav.question_id IS NULL
-        AND sqav.question_id IS NULL
-) uwwq ON e.course_id = uwwq.quiz_id AND uwwq.enrollment_id = e.enrollment_id
-WHERE uwwq.quiz_id IS NULL
-    AND c.courseType = 'quiz'
-    AND u1.state = 'active';
+# SELECT DISTINCT IF(u1.name <> '', u1.name, u1.email) AS login
+# FROM enrollment e
+# INNER JOIN user u1 ON u1.user_id = e.user_id
+# INNER JOIN course c ON e.course_id = c.course_id
+# LEFT JOIN (
+#     SELECT DISTINCT u2.email, q.quiz_id, e2.enrollment_id
+#     FROM quiz q
+#              INNER JOIN quiz_question qq ON qq.quiz_id = q.quiz_id
+#              INNER JOIN quiz_attempt_answer qaa ON qq.question_id = qaa.question_id
+#              LEFT JOIN multiple_question_available_values mcqav ON mcqav.question_id = qq.question_id
+#                 AND mcqav.value = qaa.answer_value
+#                 AND mcqav.is_correct = 1
+#              LEFT JOIN sequence_question_available_values sqav ON sqav.question_id = qq.question_id
+#                 AND sqav.value = qaa.answer_value
+#                 AND sqav.value_order = qaa.answer_order
+#              INNER JOIN attempt a ON qaa.attempt_id = a.attempt_id
+#              INNER JOIN enrollment e2 ON a.enrollment_id = e2.enrollment_id
+#              INNER JOIN user u2 ON u2.user_id = e2.user_id
+#     WHERE q.state = 'published'
+#         AND mcqav.question_id IS NULL
+#         AND sqav.question_id IS NULL
+# ) uwwq ON e.course_id = uwwq.quiz_id AND uwwq.enrollment_id = e.enrollment_id
+# WHERE
+#     uwwq.quiz_id IS NULL
+#     AND c.courseType = 'quiz'
+#     AND u1.state = 'active';
 
 
 SELECT DISTINCT a.attempt_id, IF(u.name <> '', u.name, u.email) AS login, q.quiz_id
